@@ -1,0 +1,156 @@
+Product Requirements Document (PRD) – Smart Dustbin Simulation
+1. Overview
+
+We are developing a Smart Dustbin Simulation—a software-only demo that mimics a physical smart dustbin’s behavior. It shows how full the dustbin is in real time (simulated sensor data) and alerts users when it is full. Additional features will be included to showcase a richer experience for stakeholders and demonstrate feasibility for a future hardware product.
+
+2. Goals
+
+Simulate sensor data to represent dustbin fill level (0–100%).
+
+Display the fill percentage visually on a dashboard.
+
+Trigger an alert (notification/visual indicator) when the bin reaches a threshold (e.g., 90% or 100% full).
+
+Showcase additional features like usage history, estimated time-to-full, and predicted pickup scheduling.
+
+Build a demo-ready, user-friendly interface to pitch to stakeholders.
+
+3. Target Users
+
+Waste Management Teams – to monitor fill status remotely.
+
+Building/Facility Managers – to plan cleaning schedules efficiently.
+
+Product Stakeholders/Investors – to view the potential of the smart dustbin solution.
+
+4. Key Features
+Feature	Description	Priority
+Fill Level Simulation	Software generates simulated sensor data for the dustbin (random or patterned).	High
+Live Dashboard	Real-time visualization of the bin fill percentage using gauges, bars, or charts.	High
+Alerts & Notifications	Alert when bin fill exceeds threshold (configurable).	High
+Historical Data	Display past fill level trends over time.	Medium
+Predicted Time to Full	Estimate when the bin will be full based on the current rate.	Medium
+Multiple Bins	Add ability to monitor more than one bin for future scalability.	Low
+Export Data	Allow download of logs (CSV/JSON).	Low
+5. Functional Requirements
+
+FR1: The system must simulate sensor data every X seconds (default: 10s).
+
+FR2: The system must display the simulated fill percentage on the UI.
+
+FR3: The system must trigger a configurable alert when the bin fill crosses a threshold.
+
+FR4: The system should store simulated data locally (or in-memory) for history display.
+
+FR5 (Optional): The system should estimate time-to-full using a simple predictive model.
+
+6. Non-Functional Requirements
+
+Scalable Demo: Should easily support multiple bins in simulation.
+
+Responsive UI: Must work on standard web browsers and mobile screens.
+
+Lightweight: Should run locally on a laptop without special hardware.
+
+7. User Flow
+
+User opens the Smart Dustbin Dashboard.
+
+Simulation starts automatically or on user command.
+
+Fill percentage updates every X seconds.
+
+When threshold reached, alert pops up (e.g., banner, notification).
+
+User can view trends or reset simulation.
+
+8. Data Model
+
+Bin Data Object:
+
+{
+  "binId": "bin-001",
+  "fillLevel": 75,          // percentage
+  "timestamp": "2025-09-19T14:00:00Z",
+  "status": "normal"        // "normal", "alert"
+}
+
+
+History Array: Array of bin objects with timestamped values.
+
+9. Simulated Sensor Data Generation
+
+We’ll simulate data with either:
+
+Random increment/decrement in fill level until full (0–100%).
+
+Patterned data (linear growth to 100%).
+
+Option to reset to 0% after emptying.
+
+Example (pseudo-code):
+
+let fillLevel = 0;
+setInterval(() => {
+  fillLevel += Math.floor(Math.random() * 10); // simulate waste added
+  if (fillLevel > 100) fillLevel = 100;
+
+  const status = fillLevel >= 90 ? 'alert' : 'normal';
+
+  updateDashboard({ binId: 'bin-001', fillLevel, status });
+}, 5000);
+
+10. Alerts
+
+Visual Alert: Red flashing indicator on dashboard when 90%+ full.
+
+Optional: Email/SMS mock (no real sending, just demo a popup).
+
+11. UI Mockup (Conceptual)
+
+Gauge meter or progress bar showing fill level.
+
+Timeline graph of previous fill levels.
+
+Configurable settings for:
+
+Alert threshold.
+
+Simulation speed.
+
+12. Success Metrics
+
+Working dashboard updates in real-time with simulated data.
+
+Alerts trigger correctly at threshold.
+
+Stakeholders can understand full/empty cycles easily.
+
+Optional: predictive “Time to Full” works.
+
+13. Roadmap
+Phase	Features
+Phase 1	Fill level simulation, real-time dashboard, alerts.
+Phase 2	Historical data + predicted time to full.
+Phase 3	Multiple bins, export data.
+14. Tech Stack (Proposed for Demo)
+
+Frontend: React.js + Chart.js/Recharts for visualization.
+
+Backend (optional): Node.js/Express for API simulation (or fully frontend using local state).
+
+Storage: Local storage/in-memory arrays for demo.
+
+15. Risks & Mitigation
+
+Risk: Simulation might not feel realistic → Add configurable patterns.
+
+Risk: UI may be too simple for stakeholders → Use modern chart libraries and styling.
+
+16. Next Steps
+
+Build a simple React/JS prototype using random data generation.
+
+Implement dashboard with progress bar + alerts.
+
+Add historical chart and predicted time-to-full.
