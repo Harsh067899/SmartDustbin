@@ -6,22 +6,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Minimal CORS for cross-origin client (e.g., Vercel static site)
-app.use((req, res, next) => {
-  const origin = req.headers.origin as string | undefined;
-  const allowed = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
-
-  if (origin && allowed.length > 0 && allowed.some((a) => origin === a || origin.endsWith(a))) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
-    res.header("Access-Control-Allow-Credentials", "true");
-  }
-  res.header("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -77,8 +61,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  // Bind to 0.0.0.0 in containers/cloud by default; keep localhost on Windows to avoid ENOTSUP
-  const host = process.env.HOST ?? (process.platform === 'win32' ? 'localhost' : '0.0.0.0');
+  const host = process.env.HOST || 'localhost'; // Use localhost on Windows
   server.listen({
     port,
     host,
