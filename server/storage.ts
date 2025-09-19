@@ -1,5 +1,5 @@
 import { type Bin, type InsertBin, type BinReading, type InsertBinReading, type SimulationConfig, bins, binReadings } from "@shared/schema";
-import { db } from "./db";
+import { db, isDatabaseAvailable } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -17,6 +17,131 @@ export interface IStorage {
   // Simulation operations
   getSimulationConfig(): Promise<SimulationConfig>;
   updateSimulationConfig(config: Partial<SimulationConfig>): Promise<SimulationConfig>;
+}
+
+// Memory storage implementation for development
+class MemoryStorage implements IStorage {
+  private bins: Map<string, Bin> = new Map();
+  private readings: BinReading[] = [];
+  private simulationConfig: SimulationConfig;
+
+  constructor() {
+    this.simulationConfig = {
+      pattern: "random",
+      updateInterval: 10,
+      alertThreshold: 90,
+      isRunning: false,
+    };
+    
+    // Initialize with default bin
+    this.initializeDefaultBin();
+  }
+
+  private async initializeDefaultBin() {
+    const defaultBin: Bin = {
+      id: randomUUID(),
+      name: "Main Lobby",
+      location: "Building A - Ground Floor",
+      fillLevel: 25.5,
+      status: "normal",
+      alertThreshold: 90,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.bins.set(defaultBin.id, defaultBin);
+    
+    // Add some sample readings
+    for (let i = 0; i < 10; i++) {
+      const reading: BinReading = {
+        id: randomUUID(),
+        binId: defaultBin.id,
+        fillLevel: Math.random() * 30 + 10,
+        status: "normal",
+        timestamp: new Date(Date.now() - i * 60000), // readings every minute
+      };
+      this.readings.push(reading);
+    }
+    
+    console.log("✅ Memory storage initialized with default bin:", defaultBin.name);
+  }
+
+  async getBin(id: string): Promise<Bin | undefined> {
+    return this.bins.get(id);
+  }
+
+  async getAllBins(): Promise<Bin[]> {
+    return Array.from(this.bins.values());
+  }
+
+  async createBin(insertBin: InsertBin): Promise<Bin> {
+    const bin: Bin = {
+      id: randomUUID(),
+      name: insertBin.name,
+      location: insertBin.location,
+      fillLevel: insertBin.fillLevel ?? 0,
+      status: insertBin.status ?? "normal",
+      alertThreshold: insertBin.alertThreshold ?? 90,
+      isActive: insertBin.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.bins.set(bin.id, bin);
+    return bin;
+  }
+
+  async updateBin(id: string, updates: Partial<Bin>): Promise<Bin | undefined> {
+    const bin = this.bins.get(id);
+    if (!bin) return undefined;
+    
+    const updatedBin = {
+      ...bin,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.bins.set(id, updatedBin);
+    return updatedBin;
+  }
+
+  async addReading(insertReading: InsertBinReading): Promise<BinReading> {
+    const reading: BinReading = {
+      id: randomUUID(),
+      ...insertReading,
+      timestamp: new Date(),
+    };
+    
+    this.readings.unshift(reading);
+    
+    // Keep only last 50 readings per bin
+    const binReadings = this.readings.filter(r => r.binId === insertReading.binId);
+    if (binReadings.length > 50) {
+      this.readings = this.readings.filter(r => 
+        r.binId !== insertReading.binId || 
+        binReadings.slice(0, 50).includes(r)
+      );
+    }
+    
+    return reading;
+  }
+
+  async getBinReadings(binId: string, limit = 20): Promise<BinReading[]> {
+    return this.readings
+      .filter(r => r.binId === binId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit);
+  }
+
+  async getSimulationConfig(): Promise<SimulationConfig> {
+    return { ...this.simulationConfig };
+  }
+
+  async updateSimulationConfig(config: Partial<SimulationConfig>): Promise<SimulationConfig> {
+    this.simulationConfig = {
+      ...this.simulationConfig,
+      ...config,
+    };
+    return { ...this.simulationConfig };
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,4 +279,6 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage: IStorage = isDatabaseAvailable ? new DatabaseStorage() : new MemoryStorage();
+
+console.log("🗄️  Storage initialized:", isDatabaseAvailable ? "Database" : "Memory");

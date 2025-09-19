@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+dist/public/*.map
+.git
+.gitignore
+.local
+.replit
+attached_assets
+**/*.test.*
+**/__tests__
+**/.DS_Store

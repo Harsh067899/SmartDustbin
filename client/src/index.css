@@ -3,6 +3,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for animated dustbin */
+.animated-dustbin-container {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 500px;
+  overflow: visible;
+  padding: 20px;
+}
+
+.data-point-card {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 30;
+  white-space: nowrap;
+  min-width: fit-content;
+  width: fit-content;
+  height: fit-content;
+}
+
+.dark .data-point-card {
+  background-color: rgba(31, 41, 55, 0.95);
+  color: white;
+}
+
 :root {
   --background: hsl(210, 40%, 98%);
   --foreground: hsl(222, 84%, 5%);

@@ -7,7 +7,9 @@ import HistoricalChart from '../components/HistoricalChart';
 import SimulationControls from '../components/SimulationControls';
 import StatisticsCard from '../components/StatisticsCard';
 import AlertBanner from '../components/AlertBanner';
+import AnimatedDustbin from '../components/AnimatedDustbin';
 import { Trash2, Activity } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Dashboard() {
   const [currentBin, setCurrentBin] = useState<Bin | null>(null);
@@ -92,6 +94,7 @@ export default function Dashboard() {
               <div className={`w-3 h-3 rounded-full ${
                 isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
               }`} />
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -109,6 +112,16 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Simulation Controls */}
         <SimulationControls isRunning={isSimulationRunning} />
+
+        {/* Animated Dustbin Section */}
+        <div className="mb-12 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-2xl p-12 border border-border shadow-lg overflow-visible">
+          <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-12">
+            🗑️ Real-time Dustbin Monitor
+          </h2>
+          <div className="flex justify-center items-center min-h-[600px] w-full overflow-visible px-8">
+            <AnimatedDustbin bin={currentBin} />
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Bin Status Card */}
