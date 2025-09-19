@@ -17,8 +17,10 @@ export function useWebSocket(url: string): UseWebSocketReturn {
 
   const connect = useCallback(() => {
     try {
+      const envUrl = (import.meta as any).env?.VITE_WS_URL as string | undefined;
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const defaultUrl = `${protocol}//${window.location.host}/ws`;
+      const wsUrl = envUrl || defaultUrl;
       
       wsRef.current = new WebSocket(wsUrl);
       
