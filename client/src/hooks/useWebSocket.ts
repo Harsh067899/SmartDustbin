@@ -8,104 +8,81 @@ interface UseWebSocketReturn {
   reconnect: () => void;
 }
 
-// For serverless deployment, we simulate WebSocket with polling
-export function useWebSocket(_url: string): UseWebSocketReturn {
-  const [isConnected, setIsConnected] = useState(true); // Always "connected" in polling mode
+export function useWebSocket(url: string): UseWebSocketReturn {
+  const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastDataRef = useRef<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
 
-  const pollForUpdates = useCallback(async () => {
+  const connect = useCallback(() => {
     try {
-      // Poll simulation config for status changes
-      const configRes = await fetch('/api/simulation/config');
-      if (configRes.ok) {
-        const config = await configRes.json();
-        
-        // If simulation is running, trigger an update
-        if (config.isRunning) {
-          fetch('/api/simulation/trigger', { method: 'POST' }).catch(console.error);
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+      };
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data) as WSMessage;
+          setLastMessage(message);
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
         }
+      };
+      
+      wsRef.current.onclose = () => {
+        setIsConnected(false);
         
-        // Check if simulation status changed
-        if (lastDataRef.current?.simulationConfig?.isRunning !== config.isRunning) {
-          setLastMessage({
-            type: "simulationStatus",
-            data: { isRunning: config.isRunning, config }
-          });
+        // Auto-reconnect with exponential backoff
+        if (reconnectAttemptsRef.current < 5) {
+          const delay = Math.pow(2, reconnectAttemptsRef.current) * 1000;
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current += 1;
+            connect();
+          }, delay);
         }
-        
-        if (!lastDataRef.current) lastDataRef.current = {};
-        lastDataRef.current.simulationConfig = config;
-      }
-
-      // Poll bins for updates
-      const binsRes = await fetch('/api/bins');
-      if (binsRes.ok) {
-        const bins = await binsRes.json();
-        
-        // Check for bin updates
-        if (lastDataRef.current?.bins) {
-          for (const bin of bins) {
-            const oldBin = lastDataRef.current.bins.find((b: any) => b.id === bin.id);
-            if (!oldBin || oldBin.fillLevel !== bin.fillLevel || oldBin.status !== bin.status) {
-              setLastMessage({
-                type: "binUpdate",
-                data: {
-                  binId: bin.id,
-                  fillLevel: bin.fillLevel,
-                  status: bin.status,
-                  timestamp: new Date().toISOString(),
-                }
-              });
-
-              // Check for alerts
-              if (oldBin && bin.fillLevel >= 80 && oldBin.fillLevel < 80) {
-                setLastMessage({
-                  type: "alert",
-                  data: {
-                    binId: bin.id,
-                    message: `Dustbin ${bin.name} is ${Math.round(bin.fillLevel)}% full and requires attention!`,
-                    severity: bin.fillLevel >= 100 ? "alert" : "warning"
-                  }
-                });
-              }
-            }
-          }
-        }
-        
-        lastDataRef.current.bins = bins;
-      }
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
     } catch (error) {
-      console.error('Polling error:', error);
-      setIsConnected(false);
+      console.error('Failed to create WebSocket connection:', error);
     }
   }, []);
 
   const sendMessage = useCallback((message: any) => {
-    // In polling mode, we don't send messages through WebSocket
-    // API calls are made directly from components
-    console.log('Message sending not supported in polling mode:', message);
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+    }
   }, []);
 
   const reconnect = useCallback(() => {
-    setIsConnected(true);
-    pollForUpdates();
-  }, [pollForUpdates]);
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    reconnectAttemptsRef.current = 0;
+    connect();
+  }, [connect]);
 
   useEffect(() => {
-    // Start polling every 2 seconds
-    pollingIntervalRef.current = setInterval(pollForUpdates, 2000);
-    
-    // Initial poll
-    pollForUpdates();
+    connect();
     
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
       }
     };
-  }, [pollForUpdates]);
+  }, [connect]);
 
   return {
     isConnected,

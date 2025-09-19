@@ -17,10 +17,8 @@ export default function Dashboard() {
   const [alertSeverity, setAlertSeverity] = useState<'warning' | 'alert'>('warning');
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
   
-  const { data: bins = [], error: binsError, isLoading } = useQuery<Bin[]>({
+  const { data: bins = [] } = useQuery<Bin[]>({
     queryKey: ['/api/bins'],
-    retry: 1,
-    staleTime: 30000, // 30 seconds
   });
 
   const { isConnected, lastMessage } = useWebSocket(
@@ -65,46 +63,6 @@ export default function Dashboard() {
   const dismissAlert = () => {
     setAlertMessage(null);
   };
-
-  // Show loading state while fetching bins
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if API is not available
-  if (binsError || (!isLoading && bins.length === 0 && !currentBin)) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">API Connection Issue</h2>
-          <p className="text-muted-foreground mb-4">
-            {binsError 
-              ? 'Cannot connect to the API server. Please check your network connection.'
-              : 'No dustbins found. The API server may not be configured properly.'
-            }
-          </p>
-          <div className="bg-muted p-4 rounded-lg text-left">
-            <p className="text-sm font-medium mb-2">For developers:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• Check if VITE_API_BASE_URL is set correctly</li>
-              <li>• Ensure API server is running and accessible</li>
-              <li>• Verify CORS settings on the server</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!currentBin) {
     return (
