@@ -8,7 +8,9 @@ interface UseWebSocketReturn {
   reconnect: () => void;
 }
 
-export function useWebSocket(url: string): UseWebSocketReturn {
+const WS_URL = (import.meta as any).env?.VITE_WS_URL as string | undefined;
+
+export function useWebSocket(_url: string): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -18,9 +20,9 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   const connect = useCallback(() => {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const wsUrl = WS_URL || `${protocol}//${window.location.host}/ws`;
       
-      wsRef.current = new WebSocket(wsUrl);
+  wsRef.current = new WebSocket(wsUrl);
       
       wsRef.current.onopen = () => {
         setIsConnected(true);

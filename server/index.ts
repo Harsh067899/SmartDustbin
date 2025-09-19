@@ -1,10 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors, { type CorsOptions } from "cors";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// CORS for external frontend (e.g., Vercel) calling this API
+// Set ALLOWED_ORIGINS (comma-separated) to restrict; otherwise allow all in development
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+const corsOptions: CorsOptions = {
+  origin: (requestOrigin, callback) => {
+    // same-origin or server-side requests
+    if (!requestOrigin) return callback(null, true);
+    if (allowedOrigins.length === 0 && app.get("env") === "development") return callback(null, true);
+    const originStr = String(requestOrigin);
+    if (allowedOrigins.includes(originStr)) return callback(null, true);
+    return callback(new Error("CORS: Origin not allowed"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
   const start = Date.now();
